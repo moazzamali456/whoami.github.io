@@ -1,0 +1,48 @@
+version: '3.8'
+services:
+  mysql:
+    image: mysql:8.3
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: student_management
+      MYSQL_USER: student_admin
+      MYSQL_PASSWORD: yourpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+  backend:
+    build: ./backend
+    env_file:
+      - ./backend/.env
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mysql
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: student_admin
+      DB_PASS: yourpassword
+      DB_NAME: student_management
+      ACCESS_TOKEN_SECRET: your_access_token_secret
+      REFRESH_TOKEN_SECRET: your_refresh_token_secret
+      CRYPTO_ENC_KEY: your_32_byte_base64_key
+      COOKIE_SECURE: true
+      COOKIE_DOMAIN: localhost
+  frontend:
+    build: ./frontend
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+volumes:
+  db_data:
