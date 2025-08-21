@@ -244,7 +244,7 @@ function App() {
     }
     
     setFilteredStudents(filtered);
-    setNoStudentsFound(filtered.length === 0 && (searchTerm || filterDepartment));
+    setNoStudentsFound(filtered.length === 0 && !!(searchTerm || filterDepartment));
   };
 
   const filterTeachers = () => {
@@ -264,7 +264,7 @@ function App() {
     }
     
     setFilteredTeachers(filtered);
-    setNoTeachersFound(filtered.length === 0 && (teacherSearchTerm || filterTeacherDepartment));
+    setNoTeachersFound(filtered.length === 0 && !!(teacherSearchTerm || filterTeacherDepartment));
   };
 
   const filterComplaints = () => {
@@ -290,7 +290,7 @@ function App() {
     }
     
     setFilteredComplaints(filtered);
-    setNoComplaintsFound(filtered.length === 0 && (complaintSearchTerm || filterComplaintCategory || filterComplaintStatus));
+    setNoComplaintsFound(filtered.length === 0 && !!(complaintSearchTerm || filterComplaintCategory || filterComplaintStatus));
   };
 
   const fetchStudents = async () => {
@@ -1185,15 +1185,15 @@ function App() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" className="text-center py-8">
+                <td colSpan={7} className="text-center py-8">
                   <div className="matrix-loading mx-auto"></div>
                   <p className="mt-2 glow-green">LOADING DATA...</p>
                 </td>
               </tr>
             ) : filteredStudents.length === 0 ? (
               <tr>
-                <td colSpan="7" className="text-center py-8 glow-green">
-                  {searchTerm || filterDepartment || filterSemester ? 
+                <td colSpan={7} className="text-center py-8 glow-green">
+                  {searchTerm || filterDepartment ? 
                     "NO MATCHING STUDENTS FOUND. TRY DIFFERENT SEARCH CRITERIA." :
                     "NO STUDENTS FOUND. REGISTER NEW STUDENTS TO BEGIN."
                   }
@@ -1309,7 +1309,20 @@ function App() {
             <h3 className="text-xl font-semibold mb-2">Export to CSV</h3>
             <p className="text-gray-600 mb-4">Export student data to Excel/CSV format</p>
             <button
-              onClick={exportToExcel}
+              onClick={() => {
+                const studentData = filteredStudents.map(student => ({
+                  'Student ID': student.studentId,
+                  'Full Name': student.fullName,
+                  'Email': student.email,
+                  'Phone': student.phone,
+                  'Department': student.department,
+                  'Semester': student.semester,
+                  'Date of Birth': student.dateOfBirth,
+                  'Address': student.address,
+                  'Status': student.status
+                }));
+                exportToExcel(studentData, 'Students_Report', 'Students');
+              }}
               className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition flex items-center gap-2 mx-auto"
             >
               <Download size={16} />
@@ -1448,7 +1461,7 @@ function App() {
             value={formData.address}
             onChange={handleInputChange}
             className="matrix-input rounded px-4 py-3 col-span-3"
-            rows="2"
+            rows={2}
             required
           />
           <textarea
@@ -1457,7 +1470,7 @@ function App() {
             value={formData.criminalActivity}
             onChange={handleInputChange}
             className="matrix-input rounded px-4 py-3 col-span-3"
-            rows="2"
+            rows={2}
           />
         </div>
         
@@ -1559,9 +1572,9 @@ function App() {
               />
               <input
                 type="text"
-                name="subject"
+                name="subjects"
                 placeholder="SUBJECT/COURSE"
-                value={teacherFormData.subject}
+                value={teacherFormData.subjects}
                 onChange={handleTeacherInputChange}
                 className="matrix-input rounded px-4 py-3"
                 required
@@ -1620,12 +1633,15 @@ function App() {
                       email: "",
                       phone: "",
                       department: "",
-                      subject: "",
+                      subjects: "",
                       qualification: "",
                       experience: "",
                       employeeId: "",
                       joiningDate: "",
                       address: "",
+                      dateOfBirth: "",
+                      designation: "",
+                      salary: ""
                     });
                   }}
                   className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg font-bold transition-colors"
@@ -1722,14 +1738,14 @@ function App() {
           <tbody>
             {loadingTeachers ? (
               <tr>
-                <td colSpan="7" className="text-center py-8">
+                <td colSpan={7} className="text-center py-8">
                   <div className="matrix-loading mx-auto"></div>
                   <p className="mt-2 glow-green">LOADING TEACHERS...</p>
                 </td>
               </tr>
             ) : filteredTeachers.length === 0 ? (
               <tr>
-                <td colSpan="7" className="text-center py-8 glow-green">
+                <td colSpan={7} className="text-center py-8 glow-green">
                   {teacherSearchTerm || filterTeacherDepartment ? 
                     "NO MATCHING TEACHERS FOUND. TRY DIFFERENT SEARCH CRITERIA." :
                     "NO TEACHERS FOUND. ADD NEW TEACHERS TO BEGIN."
@@ -1939,7 +1955,7 @@ function App() {
                 value={complaintFormData.postalAddress}
                 onChange={handleComplaintInputChange}
                 className="matrix-input rounded px-4 py-3 w-full"
-                rows="3"
+                rows={3}
               />
               
               {/* Crime Information Section */}
@@ -1990,7 +2006,7 @@ function App() {
                 value={complaintFormData.crimeDetails}
                 onChange={handleComplaintInputChange}
                 className="matrix-input rounded px-4 py-3 w-full"
-                rows="5"
+                rows={5}
               />
               
               {/* Captcha Section - FIA Style */}
@@ -2016,7 +2032,7 @@ function App() {
                   value={complaintFormData.captchaText}
                   onChange={handleComplaintInputChange}
                   className="matrix-input rounded px-4 py-3 flex-1"
-                  maxLength="5"
+                  maxLength={5}
                 />
               </div>
               
@@ -2192,14 +2208,14 @@ function App() {
           <tbody>
             {loadingComplaints ? (
               <tr>
-                <td colSpan="6" className="text-center py-8">
+                <td colSpan={6} className="text-center py-8">
                   <div className="matrix-loading mx-auto"></div>
                   <p className="mt-2 glow-green">LOADING COMPLAINTS...</p>
                 </td>
               </tr>
             ) : filteredComplaints.length === 0 ? (
               <tr>
-                <td colSpan="6" className="text-center py-8 glow-green">
+                <td colSpan={6} className="text-center py-8 glow-green">
                   {complaintSearchTerm || filterComplaintCategory || filterComplaintStatus ? 
                     "NO MATCHING COMPLAINTS FOUND. TRY DIFFERENT SEARCH CRITERIA." :
                     "NO COMPLAINTS REGISTERED. FILE NEW COMPLAINT TO BEGIN."
