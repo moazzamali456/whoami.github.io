@@ -1483,6 +1483,7 @@ function App() {
         </table>
       </div>
     </motion.div>
+  );
 
   return (
     <motion.div
