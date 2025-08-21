@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Eye, Edit, Trash2, FileText, Download, Users, BookOpen, Search, Filter, UserPlus, GraduationCap, Calendar, Phone, Mail, MapPin, Shield, AlertTriangle, Award, Clock, UserCheck, FileSpreadsheet, File, FileType } from "lucide-react";
+import { Eye, Edit, Trash2, FileText, Download, Users, BookOpen, Search, Filter, UserPlus, GraduationCap, Calendar, Phone, Mail, MapPin, Shield, AlertTriangle, Award, Clock, UserCheck, FileSpreadsheet, File, FileType, X, CheckCircle } from "lucide-react";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -30,19 +30,31 @@ function App() {
     return savedTeachers ? JSON.parse(savedTeachers) : [];
   });
   
+  const [complaints, setComplaints] = useState(() => {
+    const savedComplaints = localStorage.getItem('matrix-complaints');
+    return savedComplaints ? JSON.parse(savedComplaints) : [];
+  });
+  
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [filteredTeachers, setFilteredTeachers] = useState([]);
+  const [filteredComplaints, setFilteredComplaints] = useState([]);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showForm, setShowForm] = useState(false);
   const [showTeacherForm, setShowTeacherForm] = useState(false);
+  const [showComplaintForm, setShowComplaintForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [teacherSearchTerm, setTeacherSearchTerm] = useState("");
+  const [complaintSearchTerm, setComplaintSearchTerm] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("");
   const [filterTeacherDepartment, setFilterTeacherDepartment] = useState("");
+  const [filterComplaintCategory, setFilterComplaintCategory] = useState("");
+  const [filterComplaintStatus, setFilterComplaintStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingTeachers, setLoadingTeachers] = useState(false);
+  const [loadingComplaints, setLoadingComplaints] = useState(false);
   const [noStudentsFound, setNoStudentsFound] = useState(false);
   const [noTeachersFound, setNoTeachersFound] = useState(false);
+  const [noComplaintsFound, setNoComplaintsFound] = useState(false);
   const [showDocumentTemplate, setShowDocumentTemplate] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [formData, setFormData] = useState({
@@ -80,12 +92,37 @@ function App() {
     salary: "",
     subjects: "",
   });
+  
+  const [complaintFormData, setComplaintFormData] = useState({
+    fullName: "",
+    fatherName: "",
+    cnic: "",
+    gender: "",
+    mobileNumber: "",
+    phoneNumber: "",
+    whatsappNumber: "",
+    email: "",
+    occupation: "",
+    postalAddress: "",
+    city: "",
+    complaintCategory: "",
+    complaintDetails: "",
+    againstPerson: "",
+    againstDepartment: "",
+    incidentDate: "",
+    evidenceFiles: [],
+    priority: "Medium",
+    status: "Pending"
+  });
+  
   const [editId, setEditId] = useState(null);
   const [editTeacherId, setEditTeacherId] = useState(null);
+  const [editComplaintId, setEditComplaintId] = useState(null);
 
   useEffect(() => {
     fetchStudents();
     fetchTeachers();
+    fetchComplaints();
     createMatrixRain();
   }, []);
 
@@ -103,6 +140,13 @@ function App() {
     }
   }, [teachers]);
 
+  // Save complaints to localStorage whenever complaints array changes
+  useEffect(() => {
+    if (complaints.length > 0) {
+      localStorage.setItem('matrix-complaints', JSON.stringify(complaints));
+    }
+  }, [complaints]);
+
   useEffect(() => {
     filterStudents();
   }, [students, searchTerm, filterDepartment]);
@@ -110,6 +154,35 @@ function App() {
   useEffect(() => {
     filterTeachers();
   }, [teachers, teacherSearchTerm, filterTeacherDepartment]);
+
+  useEffect(() => {
+    filterComplaints();
+  }, [complaints, complaintSearchTerm, filterComplaintCategory, filterComplaintStatus]);
+
+  // Complaint categories based on FIA complaint system
+  const complaintCategories = [
+    "Academic Misconduct",
+    "Financial Fraud", 
+    "Harassment",
+    "Discrimination",
+    "Cyber Crime",
+    "Corruption",
+    "Abuse of Authority",
+    "Unfair Treatment",
+    "Safety Concerns",
+    "Infrastructure Issues",
+    "Administrative Issues",
+    "Other"
+  ];
+
+  const complaintStatuses = [
+    "Pending",
+    "Under Investigation", 
+    "In Progress",
+    "Resolved",
+    "Closed",
+    "Rejected"
+  ];
 
   const createMatrixRain = () => {
     const matrixBg = document.createElement('div');
@@ -170,6 +243,31 @@ function App() {
     setNoTeachersFound(filtered.length === 0 && (teacherSearchTerm || filterTeacherDepartment));
   };
 
+  const filterComplaints = () => {
+    let filtered = complaints;
+    
+    if (complaintSearchTerm) {
+      filtered = filtered.filter(complaint =>
+        complaint.fullName?.toLowerCase().includes(complaintSearchTerm.toLowerCase()) ||
+        complaint.email?.toLowerCase().includes(complaintSearchTerm.toLowerCase()) ||
+        complaint.complaintCategory?.toLowerCase().includes(complaintSearchTerm.toLowerCase()) ||
+        complaint.againstPerson?.toLowerCase().includes(complaintSearchTerm.toLowerCase()) ||
+        complaint.againstDepartment?.toLowerCase().includes(complaintSearchTerm.toLowerCase())
+      );
+    }
+    
+    if (filterComplaintCategory) {
+      filtered = filtered.filter(complaint => complaint.complaintCategory === filterComplaintCategory);
+    }
+    
+    if (filterComplaintStatus) {
+      filtered = filtered.filter(complaint => complaint.status === filterComplaintStatus);
+    }
+    
+    setFilteredComplaints(filtered);
+    setNoComplaintsFound(filtered.length === 0 && (complaintSearchTerm || filterComplaintCategory || filterComplaintStatus));
+  };
+
   const fetchStudents = async () => {
     try {
       setLoading(true);
@@ -227,6 +325,63 @@ function App() {
       console.error("Error fetching teachers:", error);
     } finally {
       setLoadingTeachers(false);
+    }
+  };
+
+  const fetchComplaints = async () => {
+    try {
+      setLoadingComplaints(true);
+      // If no complaints in localStorage, add sample data
+      if (complaints.length === 0) {
+        const sampleComplaints = [
+          {
+            id: 1,
+            fullName: "Ali Khan",
+            fatherName: "Muhammad Khan",
+            cnic: "12345-6789012-3",
+            gender: "Male",
+            mobileNumber: "03001234567",
+            email: "ali.khan@email.com",
+            city: "Islamabad",
+            complaintCategory: "Academic Misconduct",
+            complaintDetails: "Unfair grading practices in Computer Science department",
+            againstPerson: "Dr. Ahmed Ali",
+            againstDepartment: "Computer Science",
+            incidentDate: "2025-08-15",
+            priority: "High",
+            status: "Under Investigation",
+            submissionDate: "2025-08-21",
+            complaintId: "CMP001"
+          },
+          {
+            id: 2,
+            fullName: "Fatima Hassan",
+            fatherName: "Hassan Ali",
+            cnic: "54321-0987654-3",
+            gender: "Female",
+            mobileNumber: "03009876543",
+            email: "fatima.hassan@email.com",
+            city: "Karachi",
+            complaintCategory: "Harassment",
+            complaintDetails: "Inappropriate behavior by senior student",
+            againstPerson: "John Doe",
+            againstDepartment: "Business Administration",
+            incidentDate: "2025-08-10",
+            priority: "High",
+            status: "In Progress",
+            submissionDate: "2025-08-20",
+            complaintId: "CMP002"
+          }
+        ];
+        setComplaints(sampleComplaints);
+        setFilteredComplaints(sampleComplaints);
+      } else {
+        setFilteredComplaints(complaints);
+      }
+    } catch (error) {
+      console.error("Error fetching complaints:", error);
+    } finally {
+      setLoadingComplaints(false);
     }
   };
 
@@ -490,6 +645,10 @@ function App() {
     setTeacherFormData({ ...teacherFormData, [e.target.name]: e.target.value });
   };
 
+  const handleComplaintInputChange = (e) => {
+    setComplaintFormData({ ...complaintFormData, [e.target.name]: e.target.value });
+  };
+
   const resetForm = () => {
     setFormData({
       fullName: "",
@@ -639,6 +798,88 @@ function App() {
     }
   };
 
+  // Complaint CRUD Operations
+  const handleComplaintSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editComplaintId) {
+        // Update existing complaint
+        const updatedComplaints = complaints.map(complaint => 
+          complaint.id === editComplaintId ? { ...complaintFormData, id: editComplaintId } : complaint
+        );
+        setComplaints(updatedComplaints);
+      } else {
+        // Add new complaint
+        const newComplaint = {
+          ...complaintFormData,
+          id: complaints.length > 0 ? Math.max(...complaints.map(c => c.id)) + 1 : 1,
+          complaintId: complaintFormData.complaintId || `CMP${String(complaints.length + 1).padStart(3, '0')}`,
+          submissionDate: new Date().toISOString().split('T')[0],
+          status: complaintFormData.status || "Pending"
+        };
+        setComplaints([...complaints, newComplaint]);
+      }
+      setShowComplaintForm(false);
+      setEditComplaintId(null);
+      setComplaintFormData({
+        fullName: "",
+        fatherName: "",
+        cnic: "",
+        gender: "",
+        mobileNumber: "",
+        phoneNumber: "",
+        whatsappNumber: "",
+        email: "",
+        occupation: "",
+        postalAddress: "",
+        city: "",
+        complaintCategory: "",
+        complaintDetails: "",
+        againstPerson: "",
+        againstDepartment: "",
+        incidentDate: "",
+        evidenceFiles: [],
+        priority: "Medium",
+        status: "Pending"
+      });
+    } catch (error) {
+      console.error("Error saving complaint:", error);
+    } finally {
+      setShowComplaintForm(false);
+      setEditComplaintId(null);
+    }
+  };
+
+  const handleComplaintEdit = (complaint) => {
+    setEditComplaintId(complaint.id);
+    setComplaintFormData(complaint);
+    setShowComplaintForm(true);
+  };
+
+  const handleComplaintDelete = async (id) => {
+    try {
+      const updatedComplaints = complaints.filter(c => c.id !== id);
+      setComplaints(updatedComplaints);
+      setFilteredComplaints(updatedComplaints);
+    } catch (error) {
+      console.error("Error deleting complaint:", error);
+    }
+  };
+
+  const handleComplaintStatusUpdate = async (id, newStatus) => {
+    try {
+      const updatedComplaints = complaints.map(complaint => 
+        complaint.id === id ? { ...complaint, status: newStatus } : complaint
+      );
+      setComplaints(updatedComplaints);
+      setFilteredComplaints(updatedComplaints.filter(c => 
+        filteredComplaints.some(fc => fc.id === c.id)
+      ));
+    } catch (error) {
+      console.error("Error updating complaint status:", error);
+    }
+  };
+
   // Document Generation Functions
   const generateStudentReport = async () => {
     const pdf = new jsPDF();
@@ -712,7 +953,7 @@ function App() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <motion.div 
           className="stats-card text-center p-6 rounded-lg"
           whileHover={{ scale: 1.05 }}
@@ -734,10 +975,10 @@ function App() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold glow-green terminal-text">ACTIVE STATUS</h3>
-              <p className="text-4xl font-bold glow-green">{students.filter(s => s.status !== 'Inactive').length}</p>
+              <h3 className="text-lg font-semibold glow-green terminal-text">TOTAL TEACHERS</h3>
+              <p className="text-4xl font-bold glow-green">{teachers.length}</p>
             </div>
-            <BookOpen size={48} className="glow-green" />
+            <UserCheck size={48} className="glow-green" />
           </div>
         </motion.div>
         
@@ -748,10 +989,24 @@ function App() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold glow-green terminal-text">DEPARTMENTS</h3>
-              <p className="text-4xl font-bold glow-green">{new Set(students.map(s => s.department)).size}</p>
+              <h3 className="text-lg font-semibold glow-green terminal-text">TOTAL COMPLAINTS</h3>
+              <p className="text-4xl font-bold glow-green">{complaints.length}</p>
             </div>
-            <FileText size={48} className="glow-green" />
+            <AlertTriangle size={48} className="glow-green" />
+          </div>
+        </motion.div>
+        
+        <motion.div 
+          className="stats-card text-center p-6 rounded-lg"
+          whileHover={{ scale: 1.05 }}
+          transition={{ duration: 0.2 }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold glow-green terminal-text">PENDING COMPLAINTS</h3>
+              <p className="text-4xl font-bold glow-green">{complaints.filter(c => c.status === 'Pending').length}</p>
+            </div>
+            <Clock size={48} className="glow-green" />
           </div>
         </motion.div>
       </div>
@@ -1485,6 +1740,481 @@ function App() {
     </motion.div>
   );
 
+  const renderComplaintManagement = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <h2 className="text-3xl font-bold mb-6 glow-green terminal-text">COMPLAINT MANAGEMENT SYSTEM</h2>
+      
+      {/* Complaint Form Modal */}
+      {showComplaintForm && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+        >
+          <motion.div 
+            className="matrix-form rounded-lg p-6 w-full max-w-4xl max-h-90vh overflow-y-auto"
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+          >
+            <h3 className="text-2xl font-bold mb-4 glow-green terminal-text text-center">
+              {editComplaintId ? "UPDATE COMPLAINT" : "REGISTER NEW COMPLAINT"}
+            </h3>
+            
+            <form onSubmit={handleComplaintSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Personal Information */}
+              <div className="col-span-2">
+                <h4 className="text-lg font-semibold mb-3 text-green-300">Personal Information</h4>
+              </div>
+              
+              <input
+                type="text"
+                name="fullName"
+                placeholder="Full Name"
+                value={complaintFormData.fullName}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              />
+              
+              <input
+                type="text"
+                name="fatherName"
+                placeholder="Father Name"
+                value={complaintFormData.fatherName}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              />
+              
+              <input
+                type="text"
+                name="cnic"
+                placeholder="CNIC (12345-6789012-3)"
+                value={complaintFormData.cnic}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              />
+              
+              <select
+                name="gender"
+                value={complaintFormData.gender}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+              
+              <input
+                type="tel"
+                name="mobileNumber"
+                placeholder="Mobile Number"
+                value={complaintFormData.mobileNumber}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              />
+              
+              <input
+                type="tel"
+                name="phoneNumber"
+                placeholder="Phone Number (Optional)"
+                value={complaintFormData.phoneNumber}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              />
+              
+              <input
+                type="tel"
+                name="whatsappNumber"
+                placeholder="WhatsApp Number (Optional)"
+                value={complaintFormData.whatsappNumber}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              />
+              
+              <input
+                type="email"
+                name="email"
+                placeholder="Email Address"
+                value={complaintFormData.email}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              />
+              
+              <input
+                type="text"
+                name="occupation"
+                placeholder="Occupation (Optional)"
+                value={complaintFormData.occupation}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              />
+              
+              <input
+                type="text"
+                name="city"
+                placeholder="City"
+                value={complaintFormData.city}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              />
+              
+              <textarea
+                name="postalAddress"
+                placeholder="Postal Address (Optional)"
+                value={complaintFormData.postalAddress}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3 col-span-2"
+                rows="2"
+              />
+              
+              {/* Complaint Details */}
+              <div className="col-span-2 mt-4">
+                <h4 className="text-lg font-semibold mb-3 text-green-300">Complaint Details</h4>
+              </div>
+              
+              <select
+                name="complaintCategory"
+                value={complaintFormData.complaintCategory}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              >
+                <option value="">Select Complaint Category</option>
+                {complaintCategories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+              
+              <select
+                name="priority"
+                value={complaintFormData.priority}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              >
+                <option value="Low">Low Priority</option>
+                <option value="Medium">Medium Priority</option>
+                <option value="High">High Priority</option>
+                <option value="Urgent">Urgent</option>
+              </select>
+              
+              <input
+                type="text"
+                name="againstPerson"
+                placeholder="Against Person (Optional)"
+                value={complaintFormData.againstPerson}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              />
+              
+              <input
+                type="text"
+                name="againstDepartment"
+                placeholder="Against Department (Optional)"
+                value={complaintFormData.againstDepartment}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              />
+              
+              <input
+                type="date"
+                name="incidentDate"
+                placeholder="Incident Date"
+                value={complaintFormData.incidentDate}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+              />
+              
+              <select
+                name="status"
+                value={complaintFormData.status}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3"
+                disabled={!editComplaintId}
+              >
+                {complaintStatuses.map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+              
+              <textarea
+                name="complaintDetails"
+                placeholder="Detailed description of the complaint"
+                value={complaintFormData.complaintDetails}
+                onChange={handleComplaintInputChange}
+                className="matrix-input rounded px-4 py-3 col-span-2"
+                rows="4"
+              />
+              
+              {/* Form Actions */}
+              <div className="col-span-2 flex justify-end gap-4 mt-6">
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    setShowComplaintForm(false);
+                    setEditComplaintId(null);
+                    setComplaintFormData({
+                      fullName: "",
+                      fatherName: "",
+                      cnic: "",
+                      gender: "",
+                      mobileNumber: "",
+                      phoneNumber: "",
+                      whatsappNumber: "",
+                      email: "",
+                      occupation: "",
+                      postalAddress: "",
+                      city: "",
+                      complaintCategory: "",
+                      complaintDetails: "",
+                      againstPerson: "",
+                      againstDepartment: "",
+                      incidentDate: "",
+                      evidenceFiles: [],
+                      priority: "Medium",
+                      status: "Pending"
+                    });
+                  }}
+                  className="matrix-button-secondary px-6 py-3 rounded transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <X className="inline mr-2" size={16} />
+                  CANCEL
+                </motion.button>
+                <motion.button
+                  type="submit"
+                  className="matrix-button px-6 py-3 rounded transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <CheckCircle className="inline mr-2" size={16} />
+                  {editComplaintId ? "UPDATE COMPLAINT" : "SUBMIT COMPLAINT"}
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Complaint Actions */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex gap-4">
+          <motion.button
+            onClick={() => setShowComplaintForm(true)}
+            className="matrix-button px-6 py-3 rounded terminal-text flex items-center gap-2"
+            whileHover={{ scale: 1.05 }}
+          >
+            <AlertTriangle size={20} />
+            FILE COMPLAINT
+          </motion.button>
+          <motion.button
+            onClick={() => {
+              const complaintData = filteredComplaints.map(complaint => ({
+                'Complaint ID': complaint.complaintId || complaint.id,
+                'Full Name': complaint.fullName,
+                'Category': complaint.complaintCategory,
+                'Status': complaint.status,
+                'Priority': complaint.priority,
+                'Submission Date': complaint.submissionDate,
+                'Against Person': complaint.againstPerson,
+                'Against Department': complaint.againstDepartment,
+                'City': complaint.city,
+                'Mobile': complaint.mobileNumber,
+                'Email': complaint.email
+              }));
+              exportToExcel(complaintData, 'Complaints_Report', 'Complaints');
+            }}
+            className="matrix-button-secondary px-6 py-3 rounded terminal-text flex items-center gap-2"
+            whileHover={{ scale: 1.05 }}
+          >
+            <FileSpreadsheet size={20} />
+            EXPORT TO EXCEL
+          </motion.button>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <input
+          type="text"
+          placeholder="Search complaints..."
+          value={complaintSearchTerm}
+          onChange={(e) => setComplaintSearchTerm(e.target.value)}
+          className="matrix-input rounded px-4 py-3"
+        />
+        
+        <select
+          value={filterComplaintCategory}
+          onChange={(e) => setFilterComplaintCategory(e.target.value)}
+          className="matrix-input rounded px-4 py-3"
+        >
+          <option value="">ALL CATEGORIES</option>
+          {complaintCategories.map(category => (
+            <option key={category} value={category}>{category}</option>
+          ))}
+        </select>
+        
+        <select
+          value={filterComplaintStatus}
+          onChange={(e) => setFilterComplaintStatus(e.target.value)}
+          className="matrix-input rounded px-4 py-3"
+        >
+          <option value="">ALL STATUSES</option>
+          {complaintStatuses.map(status => (
+            <option key={status} value={status}>{status}</option>
+          ))}
+        </select>
+        
+        <motion.button
+          onClick={() => {
+            setComplaintSearchTerm("");
+            setFilterComplaintCategory("");
+            setFilterComplaintStatus("");
+          }}
+          className="matrix-button-secondary px-4 py-3 rounded terminal-text"
+          whileHover={{ scale: 1.05 }}
+        >
+          <Filter size={16} className="inline mr-2" />
+          CLEAR FILTERS
+        </motion.button>
+      </div>
+
+      {/* Complaints Table */}
+      <div className="matrix-border rounded-lg overflow-hidden">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="bg-green-900">
+              <th className="px-4 py-3 font-bold">ID</th>
+              <th className="px-4 py-3 font-bold">COMPLAINANT</th>
+              <th className="px-4 py-3 font-bold">CATEGORY</th>
+              <th className="px-4 py-3 font-bold">PRIORITY</th>
+              <th className="px-4 py-3 font-bold">STATUS</th>
+              <th className="px-4 py-3 font-bold">AGAINST</th>
+              <th className="px-4 py-3 font-bold">DATE</th>
+              <th className="px-4 py-3 font-bold">ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loadingComplaints ? (
+              <tr>
+                <td colSpan="8" className="text-center py-8">
+                  <div className="matrix-loading mx-auto"></div>
+                  <p className="mt-2 glow-green">LOADING COMPLAINTS...</p>
+                </td>
+              </tr>
+            ) : filteredComplaints.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="text-center py-8 glow-green">
+                  {complaintSearchTerm || filterComplaintCategory || filterComplaintStatus ? 
+                    "NO MATCHING COMPLAINTS FOUND. TRY DIFFERENT SEARCH CRITERIA." :
+                    "NO COMPLAINTS FOUND. FILE NEW COMPLAINTS TO BEGIN."
+                  }
+                </td>
+              </tr>
+            ) : (
+              filteredComplaints.map((complaint) => (
+                <motion.tr
+                  key={complaint.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="border-b border-green-800 hover:bg-green-900 hover:bg-opacity-20 transition-colors"
+                >
+                  <td className="px-4 py-3">{complaint.complaintId || complaint.id}</td>
+                  <td className="px-4 py-3">
+                    <div>{complaint.fullName}</div>
+                    <div className="text-sm opacity-70">{complaint.email}</div>
+                  </td>
+                  <td className="px-4 py-3">{complaint.complaintCategory}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                      complaint.priority === 'Urgent' ? 'bg-red-600 text-white' :
+                      complaint.priority === 'High' ? 'bg-orange-600 text-white' :
+                      complaint.priority === 'Medium' ? 'bg-yellow-600 text-black' :
+                      'bg-green-600 text-white'
+                    }`}>
+                      {complaint.priority}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <select
+                      value={complaint.status}
+                      onChange={(e) => handleComplaintStatusUpdate(complaint.id, e.target.value)}
+                      className={`px-2 py-1 rounded text-xs font-bold border-0 ${
+                        complaint.status === 'Resolved' ? 'bg-green-600 text-white' :
+                        complaint.status === 'In Progress' ? 'bg-blue-600 text-white' :
+                        complaint.status === 'Under Investigation' ? 'bg-purple-600 text-white' :
+                        complaint.status === 'Rejected' ? 'bg-red-600 text-white' :
+                        complaint.status === 'Closed' ? 'bg-gray-600 text-white' :
+                        'bg-yellow-600 text-black'
+                      }`}
+                    >
+                      {complaintStatuses.map(status => (
+                        <option key={status} value={status} className="bg-black text-green-400">
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-4 py-3">
+                    {complaint.againstPerson && <div>{complaint.againstPerson}</div>}
+                    {complaint.againstDepartment && <div className="text-sm opacity-70">{complaint.againstDepartment}</div>}
+                  </td>
+                  <td className="px-4 py-3">{complaint.submissionDate}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      <motion.button
+                        onClick={() => handleComplaintEdit(complaint)}
+                        className="text-blue-400 hover:text-blue-300 transition-colors"
+                        whileHover={{ scale: 1.1 }}
+                        title="Edit Complaint"
+                      >
+                        <Edit size={16} />
+                      </motion.button>
+                      <motion.button
+                        onClick={() => {
+                          // Generate individual complaint PDF
+                          const doc = new jsPDF();
+                          doc.setFontSize(20);
+                          doc.setTextColor(0, 255, 0);
+                          doc.text('COMPLAINT REPORT', 105, 20, { align: 'center' });
+                          doc.setFontSize(12);
+                          doc.setTextColor(0, 0, 0);
+                          doc.text(`Complaint ID: ${complaint.complaintId || complaint.id}`, 20, 40);
+                          doc.text(`Complainant: ${complaint.fullName}`, 20, 50);
+                          doc.text(`Category: ${complaint.complaintCategory}`, 20, 60);
+                          doc.text(`Status: ${complaint.status}`, 20, 70);
+                          doc.text(`Priority: ${complaint.priority}`, 20, 80);
+                          doc.text(`Details: ${complaint.complaintDetails}`, 20, 90);
+                          doc.save(`Complaint_${complaint.complaintId || complaint.id}.pdf`);
+                        }}
+                        className="text-green-400 hover:text-green-300 transition-colors"
+                        whileHover={{ scale: 1.1 }}
+                        title="Download PDF"
+                      >
+                        <FileText size={16} />
+                      </motion.button>
+                      <motion.button
+                        onClick={() => handleComplaintDelete(complaint.id)}
+                        className="text-red-400 hover:text-red-300 transition-colors"
+                        whileHover={{ scale: 1.1 }}
+                        title="Delete Complaint"
+                      >
+                        <Trash2 size={16} />
+                      </motion.button>
+                    </div>
+                  </td>
+                </motion.tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </motion.div>
+  );
+
   return (
     <motion.div
       className="min-h-screen bg-black text-green-400 p-8 relative"
@@ -1540,6 +2270,17 @@ function App() {
           </button>
           <button
             className={`matrix-tab px-6 py-2 rounded-md transition ${
+              activeTab === "complaints" 
+                ? "active" 
+                : ""
+            }`}
+            onClick={() => setActiveTab("complaints")}
+          >
+            <AlertTriangle className="inline mr-2" size={16} />
+            COMPLAINTS
+          </button>
+          <button
+            className={`matrix-tab px-6 py-2 rounded-md transition ${
               activeTab === "documents" 
                 ? "active" 
                 : ""
@@ -1567,6 +2308,7 @@ function App() {
       {activeTab === "dashboard" && renderDashboard()}
       {activeTab === "students" && renderStudentManagement()}
       {activeTab === "teachers" && renderTeacherManagement()}
+      {activeTab === "complaints" && renderComplaintManagement()}
       {activeTab === "documents" && renderDocumentGeneration()}
       {activeTab === "analytics" && renderAnalytics()}
 
