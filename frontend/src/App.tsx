@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Eye, Edit, Trash2, FileText, Download, Users, BookOpen, Search, Filter, UserPlus, GraduationCap, Calendar, Phone, Mail, MapPin, Shield, AlertTriangle, Award, Clock, UserCheck, FileSpreadsheet, File, FileType, X, CheckCircle } from "lucide-react";
+import { Eye, Edit, Trash2, FileText, Download, Users, BookOpen, Search, Filter, UserPlus, GraduationCap, Calendar, Phone, Mail, MapPin, Shield, AlertTriangle, Award, Clock, UserCheck, FileSpreadsheet, File, FileType, X, CheckCircle, RefreshCw } from "lucide-react";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -93,37 +93,45 @@ function App() {
     subjects: "",
   });
   
+  // FIA-style complaint form data - matching their exact fields
   const [complaintFormData, setComplaintFormData] = useState({
-    fullName: "",
-    fatherName: "",
-    cnic: "",
-    gender: "",
-    mobileNumber: "",
-    phoneNumber: "",
-    whatsappNumber: "",
-    email: "",
-    occupation: "",
-    postalAddress: "",
-    city: "",
-    complaintCategory: "",
-    complaintDetails: "",
+    fullName: "",           // Full Name * (mandatory in FIA)
+    fatherName: "",         // Father Name
+    cnic: "",              // CNIC * (mandatory in FIA)
+    gender: "",            // Gender * (mandatory in FIA)
+    mobileNumber: "",      // Mobile Number * (mandatory in FIA)
+    phoneNumber: "",       // Phone Number
+    whatsappNumber: "",    // WhatsApp Number
+    emailAddress: "",      // Email Address
+    occupation: "",        // Occupation
+    postalAddress: "",     // Postal Address
+    city: "",             // City * (mandatory in FIA)
+    crimeCategory: "",     // Crime Category * (mandatory in FIA)
+    crimeDetails: "",      // Crime Details * (mandatory in FIA)
+    captchaText: "",       // Captcha verification
+    agreementChecked: false, // Agreement checkbox
+    // Additional fields for our system
     againstPerson: "",
     againstDepartment: "",
     incidentDate: "",
     evidenceFiles: [],
     priority: "Medium",
-    status: "Pending"
+    status: "Pending",
+    submissionDate: "",
+    complaintId: ""
   });
   
   const [editId, setEditId] = useState(null);
   const [editTeacherId, setEditTeacherId] = useState(null);
   const [editComplaintId, setEditComplaintId] = useState(null);
+  const [captchaCode, setCaptchaCode] = useState("");
 
   useEffect(() => {
     fetchStudents();
     fetchTeachers();
     fetchComplaints();
     createMatrixRain();
+    generateCaptcha();
   }, []);
 
   // Save students to localStorage whenever students array changes
@@ -159,14 +167,20 @@ function App() {
     filterComplaints();
   }, [complaints, complaintSearchTerm, filterComplaintCategory, filterComplaintStatus]);
 
-  // Complaint categories based on FIA complaint system
-  const complaintCategories = [
-    "Academic Misconduct",
-    "Financial Fraud", 
-    "Harassment",
-    "Discrimination",
+  // FIA Crime Categories - matching their investigation areas
+  const crimeCategories = [
+    "Anti-Corruption",
+    "Anti Human Trafficking and Smuggling", 
+    "Counter Terrorism",
     "Cyber Crime",
-    "Corruption",
+    "Economic Crime",
+    "Immigration",
+    "Interpol",
+    "Intellectual Property Rights",
+    "Academic Misconduct",
+    "Financial Fraud",
+    "Harassment", 
+    "Discrimination",
     "Abuse of Authority",
     "Unfair Treatment",
     "Safety Concerns",
@@ -183,6 +197,16 @@ function App() {
     "Closed",
     "Rejected"
   ];
+
+  // Generate simple captcha (like FIA)
+  const generateCaptcha = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 5; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setCaptchaCode(result);
+  };
 
   const createMatrixRain = () => {
     const matrixBg = document.createElement('div');
@@ -249,15 +273,16 @@ function App() {
     if (complaintSearchTerm) {
       filtered = filtered.filter(complaint =>
         complaint.fullName?.toLowerCase().includes(complaintSearchTerm.toLowerCase()) ||
-        complaint.email?.toLowerCase().includes(complaintSearchTerm.toLowerCase()) ||
-        complaint.complaintCategory?.toLowerCase().includes(complaintSearchTerm.toLowerCase()) ||
+        complaint.emailAddress?.toLowerCase().includes(complaintSearchTerm.toLowerCase()) ||
+        complaint.crimeCategory?.toLowerCase().includes(complaintSearchTerm.toLowerCase()) ||
         complaint.againstPerson?.toLowerCase().includes(complaintSearchTerm.toLowerCase()) ||
-        complaint.againstDepartment?.toLowerCase().includes(complaintSearchTerm.toLowerCase())
+        complaint.againstDepartment?.toLowerCase().includes(complaintSearchTerm.toLowerCase()) ||
+        complaint.complaintId?.toLowerCase().includes(complaintSearchTerm.toLowerCase())
       );
     }
     
     if (filterComplaintCategory) {
-      filtered = filtered.filter(complaint => complaint.complaintCategory === filterComplaintCategory);
+      filtered = filtered.filter(complaint => complaint.crimeCategory === filterComplaintCategory);
     }
     
     if (filterComplaintStatus) {
@@ -336,41 +361,49 @@ function App() {
         const sampleComplaints = [
           {
             id: 1,
-            fullName: "Ali Khan",
+            fullName: "Ali Ahmad Khan",
             fatherName: "Muhammad Khan",
             cnic: "12345-6789012-3",
             gender: "Male",
             mobileNumber: "03001234567",
-            email: "ali.khan@email.com",
+            phoneNumber: "051-1234567",
+            whatsappNumber: "03001234567",
+            emailAddress: "ali.khan@email.com",
+            occupation: "Student",
+            postalAddress: "House #123, Street 5, F-8/3, Islamabad",
             city: "Islamabad",
-            complaintCategory: "Academic Misconduct",
-            complaintDetails: "Unfair grading practices in Computer Science department",
-            againstPerson: "Dr. Ahmed Ali",
-            againstDepartment: "Computer Science",
+            crimeCategory: "Cyber Crime",
+            crimeDetails: "Fake social media accounts being used to harass students and spread misinformation about university policies.",
+            againstPerson: "Unknown Person",
+            againstDepartment: "Social Media",
             incidentDate: "2025-08-15",
             priority: "High",
             status: "Under Investigation",
             submissionDate: "2025-08-21",
-            complaintId: "CMP001"
+            complaintId: "FIA001"
           },
           {
             id: 2,
-            fullName: "Fatima Hassan",
-            fatherName: "Hassan Ali",
+            fullName: "Fatima Hassan Ali",
+            fatherName: "Hassan Ali Shah",
             cnic: "54321-0987654-3",
             gender: "Female",
             mobileNumber: "03009876543",
-            email: "fatima.hassan@email.com",
+            phoneNumber: "",
+            whatsappNumber: "03009876543",
+            emailAddress: "fatima.hassan@email.com",
+            occupation: "Teacher",
+            postalAddress: "Flat #45, Building 7, Gulshan-e-Iqbal, Karachi",
             city: "Karachi",
-            complaintCategory: "Harassment",
-            complaintDetails: "Inappropriate behavior by senior student",
-            againstPerson: "John Doe",
-            againstDepartment: "Business Administration",
+            crimeCategory: "Economic Crime",
+            crimeDetails: "Financial fraud in university fee collection system. Unauthorized deductions and fake receipts being issued.",
+            againstPerson: "Finance Officer",
+            againstDepartment: "Finance Department",
             incidentDate: "2025-08-10",
             priority: "High",
             status: "In Progress",
             submissionDate: "2025-08-20",
-            complaintId: "CMP002"
+            complaintId: "FIA002"
           }
         ];
         setComplaints(sampleComplaints);
@@ -646,7 +679,11 @@ function App() {
   };
 
   const handleComplaintInputChange = (e) => {
-    setComplaintFormData({ ...complaintFormData, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setComplaintFormData({ 
+      ...complaintFormData, 
+      [name]: type === 'checkbox' ? checked : value 
+    });
   };
 
   const resetForm = () => {
@@ -798,9 +835,18 @@ function App() {
     }
   };
 
-  // Complaint CRUD Operations
+  // Complaint CRUD Operations - FIA Style
   const handleComplaintSubmit = async (e) => {
     e.preventDefault();
+    
+    // Basic validation (but no mandatory fields as requested)
+    if (complaintFormData.captchaText.toUpperCase() !== captchaCode) {
+      alert('Captcha verification failed. Please try again.');
+      generateCaptcha();
+      setComplaintFormData({...complaintFormData, captchaText: ""});
+      return;
+    }
+
     try {
       if (editComplaintId) {
         // Update existing complaint
@@ -813,12 +859,14 @@ function App() {
         const newComplaint = {
           ...complaintFormData,
           id: complaints.length > 0 ? Math.max(...complaints.map(c => c.id)) + 1 : 1,
-          complaintId: complaintFormData.complaintId || `CMP${String(complaints.length + 1).padStart(3, '0')}`,
+          complaintId: `FIA${String(complaints.length + 1).padStart(3, '0')}`,
           submissionDate: new Date().toISOString().split('T')[0],
-          status: complaintFormData.status || "Pending"
+          status: "Pending"
         };
         setComplaints([...complaints, newComplaint]);
       }
+      
+      // Reset form
       setShowComplaintForm(false);
       setEditComplaintId(null);
       setComplaintFormData({
@@ -829,24 +877,29 @@ function App() {
         mobileNumber: "",
         phoneNumber: "",
         whatsappNumber: "",
-        email: "",
+        emailAddress: "",
         occupation: "",
         postalAddress: "",
         city: "",
-        complaintCategory: "",
-        complaintDetails: "",
+        crimeCategory: "",
+        crimeDetails: "",
+        captchaText: "",
+        agreementChecked: false,
         againstPerson: "",
         againstDepartment: "",
         incidentDate: "",
         evidenceFiles: [],
         priority: "Medium",
-        status: "Pending"
+        status: "Pending",
+        submissionDate: "",
+        complaintId: ""
       });
+      generateCaptcha();
+      
+      alert('Complaint submitted successfully!');
     } catch (error) {
       console.error("Error saving complaint:", error);
-    } finally {
-      setShowComplaintForm(false);
-      setEditComplaintId(null);
+      alert('Error submitting complaint. Please try again.');
     }
   };
 
@@ -857,12 +910,14 @@ function App() {
   };
 
   const handleComplaintDelete = async (id) => {
-    try {
-      const updatedComplaints = complaints.filter(c => c.id !== id);
-      setComplaints(updatedComplaints);
-      setFilteredComplaints(updatedComplaints);
-    } catch (error) {
-      console.error("Error deleting complaint:", error);
+    if (confirm('Are you sure you want to delete this complaint?')) {
+      try {
+        const updatedComplaints = complaints.filter(c => c.id !== id);
+        setComplaints(updatedComplaints);
+        setFilteredComplaints(updatedComplaints);
+      } catch (error) {
+        console.error("Error deleting complaint:", error);
+      }
     }
   };
 
@@ -953,7 +1008,7 @@ function App() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <motion.div 
           className="stats-card text-center p-6 rounded-lg"
           whileHover={{ scale: 1.05 }}
@@ -975,10 +1030,10 @@ function App() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold glow-green terminal-text">TOTAL TEACHERS</h3>
-              <p className="text-4xl font-bold glow-green">{teachers.length}</p>
+              <h3 className="text-lg font-semibold glow-green terminal-text">ACTIVE STATUS</h3>
+              <p className="text-4xl font-bold glow-green">{students.filter(s => s.status !== 'Inactive').length}</p>
             </div>
-            <UserCheck size={48} className="glow-green" />
+            <BookOpen size={48} className="glow-green" />
           </div>
         </motion.div>
         
@@ -989,24 +1044,10 @@ function App() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold glow-green terminal-text">TOTAL COMPLAINTS</h3>
-              <p className="text-4xl font-bold glow-green">{complaints.length}</p>
+              <h3 className="text-lg font-semibold glow-green terminal-text">DEPARTMENTS</h3>
+              <p className="text-4xl font-bold glow-green">{new Set(students.map(s => s.department)).size}</p>
             </div>
-            <AlertTriangle size={48} className="glow-green" />
-          </div>
-        </motion.div>
-        
-        <motion.div 
-          className="stats-card text-center p-6 rounded-lg"
-          whileHover={{ scale: 1.05 }}
-          transition={{ duration: 0.2 }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold glow-green terminal-text">PENDING COMPLAINTS</h3>
-              <p className="text-4xl font-bold glow-green">{complaints.filter(c => c.status === 'Pending').length}</p>
-            </div>
-            <Clock size={48} className="glow-green" />
+            <FileText size={48} className="glow-green" />
           </div>
         </motion.div>
       </div>
@@ -1746,9 +1787,39 @@ function App() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <h2 className="text-3xl font-bold mb-6 glow-green terminal-text">COMPLAINT MANAGEMENT SYSTEM</h2>
-      
-      {/* Complaint Form Modal */}
+      <div className="flex items-center justify-center mb-8">
+        <div className="text-center">
+          <motion.h1
+            className="text-4xl font-bold glow-green terminal-text mb-2"
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            FEDERAL INVESTIGATION AGENCY
+          </motion.h1>
+          <motion.div
+            className="text-lg text-green-300 mb-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            HONESTY & INTEGRITY
+          </motion.div>
+          <motion.h2
+            className="text-3xl font-bold mb-6 glow-green terminal-text"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            Complaint Registration Form
+          </motion.h2>
+          <p className="text-green-300 mb-6">
+            All fields marked with * are mandatory. (Note: In this demo, no fields are mandatory)
+          </p>
+        </div>
+      </div>
+
+      {/* FIA-Style Complaint Form Modal */}
       {showComplaintForm && (
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -1756,201 +1827,215 @@ function App() {
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
         >
           <motion.div 
-            className="matrix-form rounded-lg p-6 w-full max-w-4xl max-h-90vh overflow-y-auto"
+            className="matrix-form rounded-lg p-8 w-full max-w-4xl max-h-90vh overflow-y-auto"
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
           >
-            <h3 className="text-2xl font-bold mb-4 glow-green terminal-text text-center">
-              {editComplaintId ? "UPDATE COMPLAINT" : "REGISTER NEW COMPLAINT"}
-            </h3>
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold mb-2 glow-green terminal-text">COMPLAINT REGISTRATION FORM</h3>
+              <p className="text-green-300">All fields marked with * are mandatory.</p>
+            </div>
             
-            <form onSubmit={handleComplaintSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Personal Information */}
-              <div className="col-span-2">
-                <h4 className="text-lg font-semibold mb-3 text-green-300">Personal Information</h4>
+            <form onSubmit={handleComplaintSubmit} className="space-y-4">
+              {/* Personal Information Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  name="fullName"
+                  placeholder="Full Name *"
+                  value={complaintFormData.fullName}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                />
+                
+                <input
+                  type="text"
+                  name="fatherName"
+                  placeholder="Father Name"
+                  value={complaintFormData.fatherName}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                />
+                
+                <input
+                  type="text"
+                  name="cnic"
+                  placeholder="CNIC * (e.g., 12345-6789012-3)"
+                  value={complaintFormData.cnic}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                />
+                
+                <select
+                  name="gender"
+                  value={complaintFormData.gender}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                >
+                  <option value="">Gender *</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+                
+                <input
+                  type="tel"
+                  name="mobileNumber"
+                  placeholder="Mobile Number *"
+                  value={complaintFormData.mobileNumber}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                />
+                
+                <input
+                  type="tel"
+                  name="phoneNumber"
+                  placeholder="Phone Number"
+                  value={complaintFormData.phoneNumber}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                />
+                
+                <input
+                  type="tel"
+                  name="whatsappNumber"
+                  placeholder="WhatsApp Number"
+                  value={complaintFormData.whatsappNumber}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                />
+                
+                <input
+                  type="email"
+                  name="emailAddress"
+                  placeholder="Email Address"
+                  value={complaintFormData.emailAddress}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                />
+                
+                <input
+                  type="text"
+                  name="occupation"
+                  placeholder="Occupation"
+                  value={complaintFormData.occupation}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                />
+                
+                <input
+                  type="text"
+                  name="city"
+                  placeholder="City *"
+                  value={complaintFormData.city}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                />
               </div>
-              
-              <input
-                type="text"
-                name="fullName"
-                placeholder="Full Name"
-                value={complaintFormData.fullName}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              />
-              
-              <input
-                type="text"
-                name="fatherName"
-                placeholder="Father Name"
-                value={complaintFormData.fatherName}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              />
-              
-              <input
-                type="text"
-                name="cnic"
-                placeholder="CNIC (12345-6789012-3)"
-                value={complaintFormData.cnic}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              />
-              
-              <select
-                name="gender"
-                value={complaintFormData.gender}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              >
-                <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-              
-              <input
-                type="tel"
-                name="mobileNumber"
-                placeholder="Mobile Number"
-                value={complaintFormData.mobileNumber}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              />
-              
-              <input
-                type="tel"
-                name="phoneNumber"
-                placeholder="Phone Number (Optional)"
-                value={complaintFormData.phoneNumber}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              />
-              
-              <input
-                type="tel"
-                name="whatsappNumber"
-                placeholder="WhatsApp Number (Optional)"
-                value={complaintFormData.whatsappNumber}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              />
-              
-              <input
-                type="email"
-                name="email"
-                placeholder="Email Address"
-                value={complaintFormData.email}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              />
-              
-              <input
-                type="text"
-                name="occupation"
-                placeholder="Occupation (Optional)"
-                value={complaintFormData.occupation}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              />
-              
-              <input
-                type="text"
-                name="city"
-                placeholder="City"
-                value={complaintFormData.city}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              />
               
               <textarea
                 name="postalAddress"
-                placeholder="Postal Address (Optional)"
+                placeholder="Postal Address"
                 value={complaintFormData.postalAddress}
                 onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3 col-span-2"
-                rows="2"
+                className="matrix-input rounded px-4 py-3 w-full"
+                rows="3"
               />
               
-              {/* Complaint Details */}
-              <div className="col-span-2 mt-4">
-                <h4 className="text-lg font-semibold mb-3 text-green-300">Complaint Details</h4>
+              {/* Crime Information Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <select
+                  name="crimeCategory"
+                  value={complaintFormData.crimeCategory}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                >
+                  <option value="">Crime Category *</option>
+                  {crimeCategories.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+                
+                <input
+                  type="date"
+                  name="incidentDate"
+                  placeholder="Incident Date"
+                  value={complaintFormData.incidentDate}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                />
+                
+                <input
+                  type="text"
+                  name="againstPerson"
+                  placeholder="Against Person (Optional)"
+                  value={complaintFormData.againstPerson}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                />
+                
+                <input
+                  type="text"
+                  name="againstDepartment"
+                  placeholder="Against Department (Optional)"
+                  value={complaintFormData.againstDepartment}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3"
+                />
               </div>
               
-              <select
-                name="complaintCategory"
-                value={complaintFormData.complaintCategory}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              >
-                <option value="">Select Complaint Category</option>
-                {complaintCategories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-              
-              <select
-                name="priority"
-                value={complaintFormData.priority}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              >
-                <option value="Low">Low Priority</option>
-                <option value="Medium">Medium Priority</option>
-                <option value="High">High Priority</option>
-                <option value="Urgent">Urgent</option>
-              </select>
-              
-              <input
-                type="text"
-                name="againstPerson"
-                placeholder="Against Person (Optional)"
-                value={complaintFormData.againstPerson}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              />
-              
-              <input
-                type="text"
-                name="againstDepartment"
-                placeholder="Against Department (Optional)"
-                value={complaintFormData.againstDepartment}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              />
-              
-              <input
-                type="date"
-                name="incidentDate"
-                placeholder="Incident Date"
-                value={complaintFormData.incidentDate}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-              />
-              
-              <select
-                name="status"
-                value={complaintFormData.status}
-                onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3"
-                disabled={!editComplaintId}
-              >
-                {complaintStatuses.map(status => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-              
               <textarea
-                name="complaintDetails"
-                placeholder="Detailed description of the complaint"
-                value={complaintFormData.complaintDetails}
+                name="crimeDetails"
+                placeholder="Crime Details * - Provide detailed description of the incident"
+                value={complaintFormData.crimeDetails}
                 onChange={handleComplaintInputChange}
-                className="matrix-input rounded px-4 py-3 col-span-2"
-                rows="4"
+                className="matrix-input rounded px-4 py-3 w-full"
+                rows="5"
               />
+              
+              {/* Captcha Section - FIA Style */}
+              <div className="flex items-center gap-4 p-4 border border-green-500 rounded bg-green-900 bg-opacity-20">
+                <div className="flex-shrink-0">
+                  <div className="bg-white text-black px-4 py-2 font-mono text-lg font-bold rounded tracking-wider">
+                    {captchaCode}
+                  </div>
+                </div>
+                <motion.button
+                  type="button"
+                  onClick={generateCaptcha}
+                  className="text-green-400 hover:text-green-300"
+                  whileHover={{ rotate: 180 }}
+                  title="Refresh Captcha"
+                >
+                  <RefreshCw size={20} />
+                </motion.button>
+                <input
+                  type="text"
+                  name="captchaText"
+                  placeholder="Enter captcha text"
+                  value={complaintFormData.captchaText}
+                  onChange={handleComplaintInputChange}
+                  className="matrix-input rounded px-4 py-3 flex-1"
+                  maxLength="5"
+                />
+              </div>
+              
+              {/* Agreement Checkbox - FIA Style */}
+              <div className="flex items-start gap-3 p-4 border border-green-500 rounded">
+                <input
+                  type="checkbox"
+                  name="agreementChecked"
+                  checked={complaintFormData.agreementChecked}
+                  onChange={handleComplaintInputChange}
+                  className="mt-1"
+                />
+                <label className="text-green-300 text-sm">
+                  I affirm that all the information I have provided on this form is correct to the best of my knowledge.
+                </label>
+              </div>
               
               {/* Form Actions */}
-              <div className="col-span-2 flex justify-end gap-4 mt-6">
+              <div className="flex justify-end gap-4 pt-6">
                 <motion.button
                   type="button"
                   onClick={() => {
@@ -1964,19 +2049,24 @@ function App() {
                       mobileNumber: "",
                       phoneNumber: "",
                       whatsappNumber: "",
-                      email: "",
+                      emailAddress: "",
                       occupation: "",
                       postalAddress: "",
                       city: "",
-                      complaintCategory: "",
-                      complaintDetails: "",
+                      crimeCategory: "",
+                      crimeDetails: "",
+                      captchaText: "",
+                      agreementChecked: false,
                       againstPerson: "",
                       againstDepartment: "",
                       incidentDate: "",
                       evidenceFiles: [],
                       priority: "Medium",
-                      status: "Pending"
+                      status: "Pending",
+                      submissionDate: "",
+                      complaintId: ""
                     });
+                    generateCaptcha();
                   }}
                   className="matrix-button-secondary px-6 py-3 rounded transition-colors"
                   whileHover={{ scale: 1.05 }}
@@ -1986,11 +2076,12 @@ function App() {
                 </motion.button>
                 <motion.button
                   type="submit"
-                  className="matrix-button px-6 py-3 rounded transition-colors"
+                  className="matrix-button px-8 py-3 rounded transition-colors font-bold"
                   whileHover={{ scale: 1.05 }}
+                  disabled={!complaintFormData.agreementChecked}
                 >
                   <CheckCircle className="inline mr-2" size={16} />
-                  {editComplaintId ? "UPDATE COMPLAINT" : "SUBMIT COMPLAINT"}
+                  SUBMIT COMPLAINT
                 </motion.button>
               </div>
             </form>
@@ -1998,33 +2089,37 @@ function App() {
         </motion.div>
       )}
 
-      {/* Complaint Actions */}
+      {/* Action Buttons */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex gap-4">
           <motion.button
-            onClick={() => setShowComplaintForm(true)}
+            onClick={() => {
+              setShowComplaintForm(true);
+              generateCaptcha();
+            }}
             className="matrix-button px-6 py-3 rounded terminal-text flex items-center gap-2"
             whileHover={{ scale: 1.05 }}
           >
             <AlertTriangle size={20} />
-            FILE COMPLAINT
+            FILE NEW COMPLAINT
           </motion.button>
           <motion.button
             onClick={() => {
               const complaintData = filteredComplaints.map(complaint => ({
-                'Complaint ID': complaint.complaintId || complaint.id,
+                'Complaint ID': complaint.complaintId,
                 'Full Name': complaint.fullName,
-                'Category': complaint.complaintCategory,
+                'Father Name': complaint.fatherName,
+                'CNIC': complaint.cnic,
+                'Mobile': complaint.mobileNumber,
+                'Email': complaint.emailAddress,
+                'City': complaint.city,
+                'Crime Category': complaint.crimeCategory,
                 'Status': complaint.status,
-                'Priority': complaint.priority,
                 'Submission Date': complaint.submissionDate,
                 'Against Person': complaint.againstPerson,
-                'Against Department': complaint.againstDepartment,
-                'City': complaint.city,
-                'Mobile': complaint.mobileNumber,
-                'Email': complaint.email
+                'Against Department': complaint.againstDepartment
               }));
-              exportToExcel(complaintData, 'Complaints_Report', 'Complaints');
+              exportToExcel(complaintData, 'FIA_Complaints_Report', 'Complaints');
             }}
             className="matrix-button-secondary px-6 py-3 rounded terminal-text flex items-center gap-2"
             whileHover={{ scale: 1.05 }}
@@ -2039,7 +2134,7 @@ function App() {
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
         <input
           type="text"
-          placeholder="Search complaints..."
+          placeholder="Search complaints by name, email, category..."
           value={complaintSearchTerm}
           onChange={(e) => setComplaintSearchTerm(e.target.value)}
           className="matrix-input rounded px-4 py-3"
@@ -2050,8 +2145,8 @@ function App() {
           onChange={(e) => setFilterComplaintCategory(e.target.value)}
           className="matrix-input rounded px-4 py-3"
         >
-          <option value="">ALL CATEGORIES</option>
-          {complaintCategories.map(category => (
+          <option value="">ALL CRIME CATEGORIES</option>
+          {crimeCategories.map(category => (
             <option key={category} value={category}>{category}</option>
           ))}
         </select>
@@ -2086,30 +2181,28 @@ function App() {
         <table className="w-full text-left">
           <thead>
             <tr className="bg-green-900">
-              <th className="px-4 py-3 font-bold">ID</th>
+              <th className="px-4 py-3 font-bold">COMPLAINT ID</th>
               <th className="px-4 py-3 font-bold">COMPLAINANT</th>
-              <th className="px-4 py-3 font-bold">CATEGORY</th>
-              <th className="px-4 py-3 font-bold">PRIORITY</th>
+              <th className="px-4 py-3 font-bold">CRIME CATEGORY</th>
               <th className="px-4 py-3 font-bold">STATUS</th>
-              <th className="px-4 py-3 font-bold">AGAINST</th>
-              <th className="px-4 py-3 font-bold">DATE</th>
+              <th className="px-4 py-3 font-bold">SUBMISSION DATE</th>
               <th className="px-4 py-3 font-bold">ACTIONS</th>
             </tr>
           </thead>
           <tbody>
             {loadingComplaints ? (
               <tr>
-                <td colSpan="8" className="text-center py-8">
+                <td colSpan="6" className="text-center py-8">
                   <div className="matrix-loading mx-auto"></div>
                   <p className="mt-2 glow-green">LOADING COMPLAINTS...</p>
                 </td>
               </tr>
             ) : filteredComplaints.length === 0 ? (
               <tr>
-                <td colSpan="8" className="text-center py-8 glow-green">
+                <td colSpan="6" className="text-center py-8 glow-green">
                   {complaintSearchTerm || filterComplaintCategory || filterComplaintStatus ? 
                     "NO MATCHING COMPLAINTS FOUND. TRY DIFFERENT SEARCH CRITERIA." :
-                    "NO COMPLAINTS FOUND. FILE NEW COMPLAINTS TO BEGIN."
+                    "NO COMPLAINTS REGISTERED. FILE NEW COMPLAINT TO BEGIN."
                   }
                 </td>
               </tr>
@@ -2122,22 +2215,13 @@ function App() {
                   transition={{ duration: 0.3 }}
                   className="border-b border-green-800 hover:bg-green-900 hover:bg-opacity-20 transition-colors"
                 >
-                  <td className="px-4 py-3">{complaint.complaintId || complaint.id}</td>
+                  <td className="px-4 py-3 font-mono text-green-300">{complaint.complaintId}</td>
                   <td className="px-4 py-3">
-                    <div>{complaint.fullName}</div>
-                    <div className="text-sm opacity-70">{complaint.email}</div>
+                    <div className="font-semibold">{complaint.fullName}</div>
+                    <div className="text-sm opacity-70">{complaint.emailAddress}</div>
+                    <div className="text-xs opacity-50">{complaint.mobileNumber}</div>
                   </td>
-                  <td className="px-4 py-3">{complaint.complaintCategory}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                      complaint.priority === 'Urgent' ? 'bg-red-600 text-white' :
-                      complaint.priority === 'High' ? 'bg-orange-600 text-white' :
-                      complaint.priority === 'Medium' ? 'bg-yellow-600 text-black' :
-                      'bg-green-600 text-white'
-                    }`}>
-                      {complaint.priority}
-                    </span>
-                  </td>
+                  <td className="px-4 py-3">{complaint.crimeCategory}</td>
                   <td className="px-4 py-3">
                     <select
                       value={complaint.status}
@@ -2158,10 +2242,6 @@ function App() {
                       ))}
                     </select>
                   </td>
-                  <td className="px-4 py-3">
-                    {complaint.againstPerson && <div>{complaint.againstPerson}</div>}
-                    {complaint.againstDepartment && <div className="text-sm opacity-70">{complaint.againstDepartment}</div>}
-                  </td>
                   <td className="px-4 py-3">{complaint.submissionDate}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
@@ -2169,30 +2249,41 @@ function App() {
                         onClick={() => handleComplaintEdit(complaint)}
                         className="text-blue-400 hover:text-blue-300 transition-colors"
                         whileHover={{ scale: 1.1 }}
-                        title="Edit Complaint"
+                        title="View/Edit Complaint"
                       >
-                        <Edit size={16} />
+                        <Eye size={16} />
                       </motion.button>
                       <motion.button
                         onClick={() => {
-                          // Generate individual complaint PDF
+                          // Generate FIA-style complaint PDF
                           const doc = new jsPDF();
-                          doc.setFontSize(20);
-                          doc.setTextColor(0, 255, 0);
-                          doc.text('COMPLAINT REPORT', 105, 20, { align: 'center' });
+                          doc.setFontSize(16);
+                          doc.setTextColor(0, 100, 0);
+                          doc.text('FEDERAL INVESTIGATION AGENCY', 105, 20, { align: 'center' });
+                          doc.text('COMPLAINT REPORT', 105, 30, { align: 'center' });
+                          
                           doc.setFontSize(12);
                           doc.setTextColor(0, 0, 0);
-                          doc.text(`Complaint ID: ${complaint.complaintId || complaint.id}`, 20, 40);
-                          doc.text(`Complainant: ${complaint.fullName}`, 20, 50);
-                          doc.text(`Category: ${complaint.complaintCategory}`, 20, 60);
-                          doc.text(`Status: ${complaint.status}`, 20, 70);
-                          doc.text(`Priority: ${complaint.priority}`, 20, 80);
-                          doc.text(`Details: ${complaint.complaintDetails}`, 20, 90);
-                          doc.save(`Complaint_${complaint.complaintId || complaint.id}.pdf`);
+                          doc.text(`Complaint ID: ${complaint.complaintId}`, 20, 50);
+                          doc.text(`Full Name: ${complaint.fullName}`, 20, 60);
+                          doc.text(`Father Name: ${complaint.fatherName}`, 20, 70);
+                          doc.text(`CNIC: ${complaint.cnic}`, 20, 80);
+                          doc.text(`Mobile: ${complaint.mobileNumber}`, 20, 90);
+                          doc.text(`Email: ${complaint.emailAddress}`, 20, 100);
+                          doc.text(`City: ${complaint.city}`, 20, 110);
+                          doc.text(`Crime Category: ${complaint.crimeCategory}`, 20, 120);
+                          doc.text(`Status: ${complaint.status}`, 20, 130);
+                          doc.text(`Submission Date: ${complaint.submissionDate}`, 20, 140);
+                          doc.text('Crime Details:', 20, 160);
+                          
+                          const splitText = doc.splitTextToSize(complaint.crimeDetails, 170);
+                          doc.text(splitText, 20, 170);
+                          
+                          doc.save(`FIA_Complaint_${complaint.complaintId}.pdf`);
                         }}
                         className="text-green-400 hover:text-green-300 transition-colors"
                         whileHover={{ scale: 1.1 }}
-                        title="Download PDF"
+                        title="Download PDF Report"
                       >
                         <FileText size={16} />
                       </motion.button>
@@ -2211,6 +2302,32 @@ function App() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Contact Information - FIA Style */}
+      <motion.div
+        className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8 }}
+      >
+        <div className="matrix-card p-6 rounded-lg text-center">
+          <Phone size={32} className="mx-auto mb-4 glow-green" />
+          <h3 className="text-lg font-bold glow-green mb-2">PHONE NUMBER</h3>
+          <p className="text-green-300">FIA HeadQuarter: 051-111-345-786</p>
+        </div>
+        
+        <div className="matrix-card p-6 rounded-lg text-center">
+          <MapPin size={32} className="mx-auto mb-4 glow-green" />
+          <h3 className="text-lg font-bold glow-green mb-2">ADDRESS</h3>
+          <p className="text-green-300">FIA Headquarters, Muhammad Tufail Niazi Rd, G 9/4, Islamabad, PK</p>
+        </div>
+        
+        <div className="matrix-card p-6 rounded-lg text-center">
+          <Mail size={32} className="mx-auto mb-4 glow-green" />
+          <h3 className="text-lg font-bold glow-green mb-2">EMAIL</h3>
+          <p className="text-green-300">complaints@fia.gov.pk</p>
+        </div>
       </div>
     </motion.div>
   );
