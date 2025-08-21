@@ -173,10 +173,9 @@ function App() {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/students`);
-      const data = await res.json();
-      setStudents(data);
-      setFilteredStudents(data);
+      // Since we're using localStorage for this demo, just set filtered students
+      // The students are already loaded from localStorage in useState
+      setFilteredStudents(students);
     } catch (error) {
       console.error("Error fetching students:", error);
     } finally {
@@ -186,13 +185,9 @@ function App() {
 
   const fetchTeachers = async () => {
     try {
-      const res = await fetch(`${API_URL}/teachers`);
-      if (res.ok) {
-        const data = await res.json();
-        setTeachers(data);
-        setFilteredTeachers(data);
-      } else {
-        // If teachers endpoint doesn't exist, use sample data
+      setLoadingTeachers(true);
+      // If no teachers in localStorage, add sample data
+      if (teachers.length === 0) {
         const sampleTeachers = [
           {
             id: 1,
@@ -225,9 +220,13 @@ function App() {
         ];
         setTeachers(sampleTeachers);
         setFilteredTeachers(sampleTeachers);
+      } else {
+        setFilteredTeachers(teachers);
       }
     } catch (error) {
       console.error("Error fetching teachers:", error);
+    } finally {
+      setLoadingTeachers(false);
     }
   };
 
@@ -518,17 +517,19 @@ function App() {
     e.preventDefault();
     try {
       if (editId) {
-        await fetch(`${API_URL}/students/${editId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
+        // Update existing student
+        const updatedStudents = students.map(student => 
+          student.id === editId ? { ...formData, id: editId } : student
+        );
+        setStudents(updatedStudents);
       } else {
-        await fetch(`${API_URL}/students`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
+        // Add new student
+        const newStudent = {
+          ...formData,
+          id: students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1,
+          rollNumber: formData.rollNumber || `STU${String(students.length + 1).padStart(3, '0')}`
+        };
+        setStudents([...students, newStudent]);
       }
       setShowForm(false);
       setEditId(null);
@@ -552,9 +553,12 @@ function App() {
         admissionDate: "",
         scholarshipInfo: "",
       });
-      fetchStudents();
     } catch (error) {
       console.error("Error saving student:", error);
+    } finally {
+      // Always close the form even if there's an error
+      setShowForm(false);
+      setEditId(null);
     }
   };
 
@@ -566,8 +570,8 @@ function App() {
 
   const handleDelete = async (id) => {
     try {
-      await fetch(`${API_URL}/students/${id}`, { method: "DELETE" });
-      fetchStudents();
+      const updatedStudents = students.filter(student => student.id !== id);
+      setStudents(updatedStudents);
     } catch (error) {
       console.error("Error deleting student:", error);
     }
@@ -578,20 +582,19 @@ function App() {
     e.preventDefault();
     try {
       if (editTeacherId) {
-        await fetch(`${API_URL}/teachers/${editTeacherId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(teacherFormData),
-        });
+        // Update existing teacher
+        const updatedTeachers = teachers.map(teacher => 
+          teacher.id === editTeacherId ? { ...teacherFormData, id: editTeacherId } : teacher
+        );
+        setTeachers(updatedTeachers);
       } else {
-        // For demo purposes, add to local state
+        // Add new teacher
         const newTeacher = {
           ...teacherFormData,
-          id: Date.now(),
+          id: teachers.length > 0 ? Math.max(...teachers.map(t => t.id)) + 1 : 1,
           employeeId: teacherFormData.employeeId || `EMP${String(teachers.length + 1).padStart(3, '0')}`
         };
         setTeachers([...teachers, newTeacher]);
-        setFilteredTeachers([...teachers, newTeacher]);
       }
       setShowTeacherForm(false);
       setEditTeacherId(null);
@@ -610,9 +613,12 @@ function App() {
         salary: "",
         subjects: "",
       });
-      fetchTeachers();
     } catch (error) {
       console.error("Error saving teacher:", error);
+    } finally {
+      // Always close the form even if there's an error
+      setShowTeacherForm(false);
+      setEditTeacherId(null);
     }
   };
 
@@ -1477,7 +1483,6 @@ function App() {
         </table>
       </div>
     </motion.div>
-  );
 
   return (
     <motion.div

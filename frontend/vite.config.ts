@@ -8,7 +8,7 @@ export default defineConfig({
     port: 5173,
     host: true
   },
-  base: '/whoami.github.io/',
+  base: process.env.NODE_ENV === 'production' ? '/whoami.github.io/' : '/',
   build: {
     outDir: 'dist',
     sourcemap: true
