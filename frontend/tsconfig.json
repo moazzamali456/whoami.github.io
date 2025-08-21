@@ -24,8 +24,10 @@
     "allowJs": true,
     "checkJs": false,
     "suppressImplicitAnyIndexErrors": true,
-    "noErrorTruncation": true
+    "noErrorTruncation": true,
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "ignoreDeprecations": "5.0"
   },
-  "include": ["src"],
+  "include": ["src", "src/types/**/*"],
   "exclude": ["node_modules", "dist"]
 }

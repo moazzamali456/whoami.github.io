@@ -451,7 +451,7 @@ function App() {
       ['Scholarship Info', student.scholarshipInfo || 'N/A']
     ];
 
-    doc.autoTable({
+    (doc as any).autoTable({
       head: [studentData[0]],
       body: studentData.slice(1),
       startY: 40,
@@ -486,7 +486,7 @@ function App() {
       ['Pending Fees', students.filter(s => s.feeStatus === 'Pending').length.toString()]
     ];
 
-    doc.autoTable({
+    (doc as any).autoTable({
       head: [stats[0]],
       body: stats.slice(1),
       startY: 40,
@@ -505,10 +505,10 @@ function App() {
       ...Object.entries(deptStats).map(([dept, count]) => [dept, count.toString()])
     ];
 
-    doc.autoTable({
+    (doc as any).autoTable({
       head: [deptData[0]],
       body: deptData.slice(1),
-      startY: doc.lastAutoTable.finalY + 20,
+      startY: (doc as any).lastAutoTable.finalY + 20,
       theme: 'grid',
       headStyles: { fillColor: [0, 100, 0], textColor: [255, 255, 255] }
     });
@@ -535,7 +535,7 @@ function App() {
       ['Average Experience', (teachers.reduce((sum, t) => sum + parseInt(t.experience || 0), 0) / teachers.length || 0).toFixed(1) + ' years']
     ];
     
-    doc.autoTable({
+    (doc as any).autoTable({
       head: [['TEACHER STATISTICS', '']],
       body: stats,
       startY: 40,
@@ -555,10 +555,10 @@ function App() {
       teacher.email
     ]);
     
-    doc.autoTable({
+    (doc as any).autoTable({
       head: [['Name', 'Employee ID', 'Department', 'Subject', 'Qualification', 'Experience', 'Phone', 'Email']],
       body: teacherData,
-      startY: doc.lastAutoTable.finalY + 20,
+      startY: (doc as any).lastAutoTable.finalY + 20,
       theme: 'grid',
       headStyles: { fillColor: [0, 100, 0], textColor: [255, 255, 255] },
       alternateRowStyles: { fillColor: [240, 255, 240] }

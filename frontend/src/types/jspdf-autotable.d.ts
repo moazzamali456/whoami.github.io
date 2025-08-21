@@ -22,3 +22,15 @@ declare module 'jspdf-autotable' {
     tableWidth?: string;
   }
 }
+
+// Global augmentation to make sure jsPDF types are extended
+declare global {
+  namespace jsPDF {
+    interface jsPDF {
+      autoTable: (options: any) => jsPDF;
+      lastAutoTable: {
+        finalY: number;
+      };
+    }
+  }
+}
