@@ -19,8 +19,17 @@ const admin = {
 };
 
 function App() {
-  const [students, setStudents] = useState([]);
-  const [teachers, setTeachers] = useState([]);
+  // Load data from localStorage or use empty arrays
+  const [students, setStudents] = useState(() => {
+    const savedStudents = localStorage.getItem('matrix-students');
+    return savedStudents ? JSON.parse(savedStudents) : [];
+  });
+  
+  const [teachers, setTeachers] = useState(() => {
+    const savedTeachers = localStorage.getItem('matrix-teachers');
+    return savedTeachers ? JSON.parse(savedTeachers) : [];
+  });
+  
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [filteredTeachers, setFilteredTeachers] = useState([]);
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -79,6 +88,20 @@ function App() {
     fetchTeachers();
     createMatrixRain();
   }, []);
+
+  // Save students to localStorage whenever students array changes
+  useEffect(() => {
+    if (students.length > 0) {
+      localStorage.setItem('matrix-students', JSON.stringify(students));
+    }
+  }, [students]);
+
+  // Save teachers to localStorage whenever teachers array changes
+  useEffect(() => {
+    if (teachers.length > 0) {
+      localStorage.setItem('matrix-teachers', JSON.stringify(teachers));
+    }
+  }, [teachers]);
 
   useEffect(() => {
     filterStudents();
