@@ -8,7 +8,7 @@ export default defineConfig({
     port: 5173,
     host: true
   },
-  base: '/matrix-student-management/',
+  base: '/whoami.github.io/',
   build: {
     outDir: 'dist',
     sourcemap: true
